@@ -66,6 +66,7 @@ class EqualSplitStrategy implements SplitStrategy {
 }
 
 // Стратегія 2: За відсотками (спрощений приклад для демонстрації)
+// Додано розширену логіку валідації відсотків розробником А
 class PercentageSplitStrategy implements SplitStrategy {
     constructor(private percentages: number[]) {}
 
