@@ -49,7 +49,6 @@ class ExpenseBuilder {
     }
 }
 
-
 // 2. ПАТЕРН "СТРАТЕГІЯ" (Strategy)
 // Вирішує проблему жорстко закодованих алгоритмів розподілу суми чека.
 
@@ -65,11 +64,20 @@ class EqualSplitStrategy implements SplitStrategy {
     }
 }
 
-// Стратегія 2: За відсотками (спрощений приклад для демонстрації)
+// Стратегія 2: За відсотками
 class PercentageSplitStrategy implements SplitStrategy {
     constructor(private percentages: number[]) {}
 
     calculate(amount: number, participants: string[]) {
+        // --- ПОКРАЩЕННЯ ДЛЯ ЛАБ №8 ---
+        // Додаємо валідацію: перевіряємо, чи сума всіх часток дорівнює 100%.
+        // Це гарантує, що вся сума чека буде розподілена коректно.
+        const totalPercentage = this.percentages.reduce((sum, p) => sum + p, 0);
+        if (totalPercentage !== 100) {
+            throw new Error("Помилка валідації: Сума відсотків повинна дорівнювати 100%");
+        }
+        // -----------------------------
+
         // TODO: Перевірити точність заокруглення відсотків.
         return participants.map((p, index) => ({
             user: p,
@@ -94,11 +102,9 @@ class ExpenseContext {
     }
 }
 
-
 // 3. ПАТЕРН "ФАСАД" (Facade)
 // Приховує складність взаємодії між репозиторієм, калькулятором та системою сповіщень.
 
-// Імітація підсистем для Фасаду
 class ExpenseRepository {
     save(expense: Expense) { console.log(`[БД] Витрату "${expense.title}" збережено.`); }
 }
@@ -109,7 +115,6 @@ class NotificationService {
     sendPush(groupId: string, msg: string) { console.log(`[Push] Сповіщення групі ${groupId}: ${msg}`); }
 }
 
-// Сам Фасад
 class ExpenseFacade {
     private repo = new ExpenseRepository();
     private calc = new BalanceCalculator();
@@ -121,7 +126,6 @@ class ExpenseFacade {
         this.notifier.sendPush(groupId, `Додано нову витрату на ${expense.amount} грн!`);
     }
 }
-
 
 // --- ТЕСТУВАННЯ ВСІХ ПАТЕРНІВ ДЛЯ ЗВІТУ ---
 console.log("=== ТЕСТУВАННЯ ПАТЕРНІВ ПРОЄКТУ FAIRSHARE ===");
@@ -142,6 +146,7 @@ const context = new ExpenseContext(new EqualSplitStrategy());
 console.log("Розподіл ПОРІВНУ:");
 console.log(context.executeSplit(myExpense.amount, participants));
 
+// Тестування з коректними відсотками
 context.setStrategy(new PercentageSplitStrategy([50, 25, 25]));
 console.log("Розподіл ЗА ВІДСОТКАМИ (50%, 25%, 25%):");
 console.log(context.executeSplit(myExpense.amount, participants));
