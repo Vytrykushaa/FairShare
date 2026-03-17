@@ -70,6 +70,7 @@ class PercentageSplitStrategy implements SplitStrategy {
     constructor(private percentages: number[]) {}
 
     calculate(amount: number, participants: string[]) {
+        // TODO: Перевірити точність заокруглення відсотків.
         return participants.map((p, index) => ({
             user: p,
             debt: Math.round(amount * (this.percentages[index]! / 100))
