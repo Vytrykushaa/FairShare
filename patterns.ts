@@ -1,6 +1,18 @@
 // 1. ПАТЕРН "БУДІВЕЛЬНИК" (Builder)
 // Вирішує проблему складного створення об'єкта "Витрата" з багатьма необов'язковими полями.
 
+// ==========================================
+// МЕТАДАНІ РЕЛІЗУ v1.0
+// ==========================================
+const APP_CONFIG = {
+    appName: "FairShare",
+    version: "1.0.0",
+    environment: "production",
+    releaseDate: new Date().toISOString()
+};
+
+console.log(`\n🚀 Запуск додатку: ${APP_CONFIG.appName} | Версія: ${APP_CONFIG.version} | Середовище: ${APP_CONFIG.environment}\n`);
+
 class Expense {
     id: string;
     title: string;
@@ -8,6 +20,7 @@ class Expense {
     payerId: string;
     category: string;
     locationMapUrl: string | null;
+    createdAt: Date; // НОВЕ ПОЛЕ ДЛЯ РЕЛІЗУ
 
     constructor(builder: ExpenseBuilder) {
         this.id = builder.id;
@@ -16,6 +29,7 @@ class Expense {
         this.payerId = builder.payerId;
         this.category = builder.category || 'Загальне';
         this.locationMapUrl = builder.locationMapUrl || null;
+        this.createdAt = new Date(); // ФІКСУЄМО ЧАС СТВОРЕННЯ
     }
 }
 
