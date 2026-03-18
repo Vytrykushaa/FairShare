@@ -13,6 +13,31 @@ const APP_CONFIG = {
 
 console.log(`\n🚀 Запуск додатку: ${APP_CONFIG.appName} | Версія: ${APP_CONFIG.version} | Середовище: ${APP_CONFIG.environment}\n`);
 
+// --- ЧАСТИНА 2: СИСТЕМА ЛОГУВАННЯ ---
+enum LogLevel { INFO = "INFO", WARN = "WARN", ERROR = "ERROR" }
+
+class Logger {
+    static log(level: LogLevel, message: string) {
+        const timestamp = new Date().toLocaleTimeString();
+        // Використовуємо кольорове маркування для консолі (опціонально для краси)
+        const color = level === LogLevel.ERROR ? "\x1b[31m" : level === LogLevel.WARN ? "\x1b[33m" : "\x1b[32m";
+        console.log(`${color}[${timestamp}] [${level}] ${message}\x1b[0m`);
+    }
+}
+
+// --- ЧАСТИНА 3: СИСТЕМА АНАЛІТИКИ (Sentry/Google Analytics) ---
+class AnalyticsService {
+    static sendEvent(name: string, data: object) {
+        // Імітуємо фіолетовий колір для аналітики
+        console.log(`\x1b[35m[ANALYTICS] Подія: ${name} | Дані: ${JSON.stringify(data)}\x1b[0m`);
+    }
+
+    static captureException(error: Error) {
+        // Імітуємо червоний блок для критичних помилок (Sentry)
+        console.log(`\x1b[41m\x1b[37m[SENTRY ALERT] ПЕРЕХОПЛЕНО ПОМИЛКУ: ${error.message}\x1b[0m`);
+    }
+}
+
 class Expense {
     id: string;
     title: string;
@@ -85,14 +110,22 @@ class PercentageSplitStrategy implements SplitStrategy {
     calculate(amount: number, participants: string[]) {
         // --- ПОКРАЩЕННЯ ДЛЯ ЛАБ №8 ---
         // Додаємо валідацію: перевіряємо, чи сума всіх часток дорівнює 100%.
-        // Це гарантує, що вся сума чека буде розподілена коректно.
         const totalPercentage = this.percentages.reduce((sum, p) => sum + p, 0);
+        
         if (totalPercentage !== 100) {
-            throw new Error("Помилка валідації: Сума відсотків повинна дорівнювати 100%");
+            const error = new Error(`Помилка валідації: Сума відсотків дорівнює ${totalPercentage}%, а має бути 100%`);
+            
+            // ЧАСТИНА 3: ПІДКЛЮЧЕННЯ СИСТЕМИ ЗБОРУ АНАЛІТИКИ (Sentry)
+            // Перед тим як перервати програму, відправляємо звіт про помилку
+            AnalyticsService.captureException(error); 
+            
+            // Також додаємо запис у лог (Частина 2)
+            Logger.log(LogLevel.ERROR, error.message);
+            
+            throw error;
         }
         // -----------------------------
 
-        // TODO: Перевірити точність заокруглення відсотків.
         return participants.map((p, index) => ({
             user: p,
             debt: Math.round(amount * (this.percentages[index]! / 100))
@@ -135,9 +168,15 @@ class ExpenseFacade {
     private notifier = new NotificationService();
 
     processNewExpense(expense: Expense, groupId: string) {
-        this.repo.save(expense);
-        this.calc.recalculate(groupId);
-        this.notifier.sendPush(groupId, `Додано нову витрату на ${expense.amount} грн!`);
+    Logger.log(LogLevel.INFO, `Спроба збереження витрати: "${expense.title}" на суму ${expense.amount}`); // Повідомлення про дію
+    
+    this.repo.save(expense);
+    this.calc.recalculate(groupId);
+    this.notifier.sendPush(groupId, `Додано нову витрату на ${expense.amount} грн!`);
+    
+    AnalyticsService.sendEvent("Expense_Created", { amount: expense.amount, category: expense.category });
+    
+    Logger.log(LogLevel.INFO, "Процес обробки витрати успішно завершено."); // Підтвердження успіху
     }
 }
 
@@ -169,5 +208,13 @@ console.log(context.executeSplit(myExpense.amount, participants));
 console.log("\n--- 3. Тест Facade ---");
 const facade = new ExpenseFacade();
 facade.processNewExpense(myExpense, "group_Bali_2026");
+
+try {
+    Logger.log(LogLevel.WARN, "Тестування системи аналітики: спроба некоректного розподілу...");
+    const badStrategy = new PercentageSplitStrategy([50, 10]); // лише 60%
+    badStrategy.calculate(100, ["Анна", "Олег"]);
+} catch (e) {
+    // Помилка оброблена
+}
 
 console.log("\n=== ТЕСТУВАННЯ ЗАВЕРШЕНО ===");
